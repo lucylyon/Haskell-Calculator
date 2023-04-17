@@ -1,0 +1,287 @@
+---
+---
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Calc</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<h1 id="project-2-calculator">Project 2: Calculator</h1>
+<p>For this project, you will implement the guts of a (fancy) calculator. I have provided you with a simple read-eval-print interface (in <a href="CalcREPL.hs">CalcREPL.hs</a>) that lets the user type in expressions to be evaluated. You will ultimately provide a function of type <code>String -&gt; String</code> which accepts the user’s input and produces a response. Of course, your <code>String -&gt; String</code> function should be decomposed into multiple phases, just like all of the language implementations we have been considering (such as parsing, pretty-printing, interpreting, and so on). This project intentionally gives you much less guidance than the first project in terms of what specific data types and functions you should write, and how to decompose your solution. However, you can of course use the modules we have done as templates to help guide you.</p>
+<h2 id="getting-started">Getting started</h2>
+<ul>
+<li><p>Download the <a href="calc.zip">provided zip file</a>, which should contain several files including <a href="CalcREPL.hs"><code>CalcREPL.hs</code></a>, <a href="Calc.lhs"><code>Calc.lhs</code></a>, <a href="Parsing2.hs"><code>Parsing2.hs</code></a>, and a few configuration files such as <code>calc.cabal</code> and <code>stack.yaml</code>.</p></li>
+<li><p>Extract the contents of the zip file.</p></li>
+<li><p><strong>Using <code>repl.it</code></strong></p>
+<ul>
+<li>If you wish you can continue to use <code>repl.it</code> to complete this project. Simply upload all the provided files to a new <code>repl.it</code> project.</li>
+</ul></li>
+<li><p><strong>Working locally</strong></p>
+<ul>
+<li><p>You can also install Haskell locally on your own computer.</p></li>
+<li><p>The easiest way to do this is to first install the <a href="https://www.haskell.org/ghcup/"><code>ghcup</code> tool</a>.</p></li>
+<li><p>Then use <code>ghcup</code> at a terminal prompt to install GHC as well as the <code>cabal</code> build tool:</p>
+<ul>
+<li><code>ghcup install ghc</code></li>
+<li><code>ghcup install cabal</code></li>
+</ul></li>
+<li><p>You can now use <code>ghci</code> just as you would in <code>repl.it</code>. The only difference is that you may have to pass some <code>-package</code> flags to tell it what packages to use, for example</p>
+<pre><code>ghci -package parsec Calc.lhs</code></pre></li>
+</ul></li>
+<li><p>Whether you are working in a <code>repl.it</code> shell or in a terminal window on your own computer, the process for compiling and running your calculator is the same:</p>
+<ul>
+<li><p>Compile and run your calculator using the command <code>cabal run</code>.</p></li>
+<li><p>You should get a calculator prompt where you can enter expressions (though it will not do anything yet).</p></li>
+<li><p>Simply exit the calculator and rerun <code>cabal run</code> every time you want to test changes you have made to <code>Calc.lhs</code>.</p></li>
+</ul></li>
+</ul>
+<h2 id="level-1">Level 1</h2>
+<p>Your calculator must support the following features:</p>
+<ul>
+<li>Floating-point numbers (represented as <code>Double</code> values)</li>
+<li>Standard arithmetic operations <code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, and <code>^</code> as well as prefix negation</li>
+<li>Display appropriate error messages to the user instead of crashing</li>
+<li>Display appropriate startup and <code>:help</code> messages which explain/illustrate the features of the calculator.</li>
+</ul>
+<p>For example, a sample interaction with your calculator might look like this:</p>
+<pre><code>&gt; 2+3
+5
+&gt; (((3*5)   -   9)  + -8.3)
+-2.3000000000000007
+&gt; 2 ^ 2 ^ 2 ^ 2
+65536.0
+&gt; (3+3)*3
+18.0
+&gt; 3+
+(line 1, column 3):
+unexpected end of input
+expecting end of &quot;+&quot;, number, or &quot;(&quot;</code></pre>
+<p>Your calculator must never crash with a runtime error or pattern-match failure.</p>
+<p>Get started by editing the starter code below and adding to it as appropriate!</p>
+<h2 id="general-notes-and-hints">General notes and hints</h2>
+<ul>
+<li>You can use the <code>reserved</code> token parser to parse things like function names, names of constants or units, <em>etc.</em></li>
+<li>You can use the <code>naturalOrFloat</code> token parser to parse literal values that can either be an integer or a floating-point value. Note it does not handle negatives; that should be taken care of automatically by your prefix negation operator.</li>
+<li>You can use <code>fromIntegral</code> to convert from <code>Integer</code> to <code>Double</code>.</li>
+<li>You should use the <code>parse</code> function to run your parser. If it returns an error wrapped in a <code>Left</code> constructor, you can simply call <code>show</code> on the resulting error to turn it into a <code>String</code> appropriate for displaying to the calculator user.</li>
+<li>The <code>parseSome</code> function can be used as before for experimenting with parsers in GHCi.</li>
+<li>Exponentiation for <code>Double</code> values in Haskell is done with the <code>(**)</code> operator. (The <code>(^)</code> operator is only for integers.)</li>
+</ul>
+<h2 id="starter-code">Starter code</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="ot">{-# LANGUAGE GADTs #-}</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="kw">module</span> <span class="dt">Calc</span> <span class="kw">where</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a><span class="kw">import</span>           <span class="dt">Parsing2</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">M</span></span></code></pre></div>
+<p>Edit this description and replace it with your own! It gets printed when the calculator interface first starts up.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="ot">description ::</span> <span class="dt">String</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a>description <span class="ot">=</span> <span class="fu">unlines</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a>  [ <span class="st">&quot;Welcome to my calculator.&quot;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a>  , <span class="st">&quot;This boring message is being shown because&quot;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>  , <span class="st">&quot;I have not bothered to update it.&quot;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>  , <span class="st">&quot;Features this calculator supports: none.&quot;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a>  , <span class="st">&quot;Type an expression, :help, or :quit.&quot;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>  ]</span></code></pre></div>
+<p>Edit this help message and replace it with your own! It gets printed when the user types <code>:help</code>. Adding some well-chosen examples could be a good way to concisely show off the different features of your calculator.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="ot">helpMsg ::</span> <span class="dt">String</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a>helpMsg <span class="ot">=</span> <span class="fu">unlines</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a>  [ <span class="st">&quot;You can use integers or floating point values,&quot;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a>  , <span class="st">&quot;negation, or standard arithmetic operators + - * / ^ .&quot;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a>  ]</span></code></pre></div>
+<p>This is the main function that is called by <code>CalcREPL</code> to evaluate user input.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell literate"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="ot">calc ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a>calc input <span class="ot">=</span> <span class="st">&quot;Implement me!&quot;</span></span></code></pre></div>
+<h2 id="level-2">Level 2</h2>
+<p>To complete this project to Level 2, in addition to the requirements for Level 1:</p>
+<ul>
+<li><p>Re-display a nicely formatted version of the user’s input as confirmation of each computation. For example, a sample interaction with your calculator might now look like this:</p>
+<pre><code>&gt; 2+3
+2.0 + 3.0
+  = 5.0
+&gt; (((3*5)  -   9)  + -8.3)
+3.0 * 5.0 - 9.0 + -8.3
+  = -2.3000000000000007
+&gt; 2 ^ 2 ^ 2 ^ 2
+2.0 ^ 2.0 ^ 2.0 ^ 2.0
+  = 65536.0
+&gt; (3+3)*3
+(3.0 + 3.0) * 3.0
+  = 18.0</code></pre></li>
+<li><p>Ensure that your code uses <a href="https://kowainik.github.io/posts/2019-02-06-style-guide">good Haskell style</a>.</p></li>
+<li><p>Make sure your code is simplified as much as possible, for example, without redundant pattern-matching.</p></li>
+<li><p>Turn on <code>{-# OPTIONS_GHC -Wall #-}</code> and make sure your code generates no warnings.</p></li>
+<li><p>Write informative, grammatically correct comments explaining your code, its operation, and any choices you made along with the reasons for those choices.</p></li>
+</ul>
+<h2 id="level-3">Level 3</h2>
+<p>To complete this project to Level 3, in addition to the requirements for Level 2, you must complete <em>at least two</em> extensions. You may pick from the following list of suggested extensions (ordered roughly from easier to harder), or propose your own.</p>
+<ol type="1">
+<li><p>Add support for the constants <span class="math inline"><em>π</em></span> and <span class="math inline"><em>e</em></span>, along with at least five functions such as sine, cosine, tangent, log, floor, ceiling, round, square root, or absolute value. For example, a sample interaction might look like this:</p>
+<pre><code>&gt; sin(pi/6)
+sin(π / 6.0)
+  = 0.49999999999999994
+&gt; cos(tan(log(abs(-2))))
+cos(tan(log(abs(-2.0))))
+  = 0.6744026976311414
+&gt; ((1 + sqrt(5))/2)^2 - 1
+((1.0 + sqrt(5.0)) / 2.0) ^ 2.0 - 1.0
+  = 1.618033988749895</code></pre></li>
+<li><p>Support for complex numbers. For example, the user should be able to enter expressions like <code>3 + 2i</code>. Note that real numbers should never be pretty-printed with an imaginary component, and purely imaginary numbers should not be pretty-printed with a real component. For example,</p>
+<pre><code>&gt; 2
+2.0
+  = 2.0
+&gt; 3i
+3.0i
+  = 3.0i
+&gt; i + 2
+i + 2.0
+  = 2.0 + i
+&gt; 2 + 3i
+2.0 + 3.0i
+  = 2.0 + 3.0i
+&gt; (2 + 3i) * (4 + 6i)
+(2.0 + 3.0i) * (4.0 + 6.0i)
+  = -10.0 + 24.0i
+&gt; sqrt(2 + 3i)
+sqrt(2.0 + 3.0i)
+  = 1.6741492280355401 + 0.8959774761298381i</code></pre>
+<p>(The last example works only if you have also implemented the first extension.)</p>
+<p>You can import the <code>Complex.Double</code> module to work with complex numbers in Haskell.</p>
+<p>Note there is a slight wrinkle to deal with when parsing a literal imaginary value: if you see a number you do not yet know whether it will be followed by <code>i</code> or not. The problem is that by default, if a parsec parser consumes some input before failing, it does <em>not</em> backtrack to try re-parsing the same input. So, as an example, something like this:</p>
+<pre><code>Imag &lt;$&gt; (integer &lt;* reserved &quot;i&quot;) &lt;|&gt; Real &lt;$&gt; integer</code></pre>
+<p>does <em>not</em> work, since if there is an integer not followed by an <code>i</code>, the first parser will irreversibly consume the integer before failing to find an <code>i</code>; when the second parser is tried there will no longer be an integer for it to find.</p>
+<p>The solution is that any parser which you would like to backtrack can be wrapped in the <code>try</code> function. So</p>
+<pre><code>Imag &lt;$&gt; try (integer &lt;* reserved &quot;i&quot;) &lt;|&gt; Real &lt;$&gt; integer</code></pre>
+<p>works as expected: if there is no <code>i</code> following an integer and the first parser fails, the input gets rewound to the beginning of the integer before trying the second parser.</p></li>
+<li><p>Support for units of measurement. Pick a domain (<em>e.g.</em> length, mass, time, …) and allow the user to add units in that domain to their calculations. For example (yours does not have to work exactly like this):</p>
+<pre><code>&gt; 1
+1.0
+  = 1.0
+&gt; 1 inch
+1.0 in
+  = 1.0 in
+&gt; 1 inch + 3 inches
+1.0 in + 3.0 in
+  = 4.0 in
+&gt; 1 meter + 1 inch
+1.0 m + 1.0 in
+  = 1.0254 m
+&gt; (1 meter + 1 inch) as inches
+(1.0 m + 1.0 in) as in
+  = 40.370078740157474 in
+&gt; ((1.6 ft * 700 + 8.1 ft) / 2) as miles
+((1.6 ft * 700.0 + 8.1 ft) / 2.0) as mi
+  = 0.10678412422360248 mi
+&gt; 5 feet * 2 meters
+5.0 ft * 2.0 m
+  = Error: tried to multiply two values with units, namely 5.0 ft and 2.0 m
+&gt; 5 km + 6
+5.0 km + 6.0
+  = Error: tried to add values with and without units, namely 5.0 km and 6.0
+&gt; (5 km) mi
+5.0 km mi
+  = Error: tried to apply units mi to a value that already had units km
+&gt; (5 km) as mi
+5.0 km as mi
+  = 3.105590062111801 mi
+&gt; 6 as cm
+6.0 as cm
+  = Error: can&#39;t convert scalar 6.0 to cm</code></pre>
+<p>Some hints:</p>
+<ul>
+<li>It should be possible to add two values with units, with conversion as appropriate. It should be an error to add a value with units to a value without units.</li>
+<li>It should be possible to multiply a value with units by a value without units, or vice versa. It should be an error to multiply two values with units.</li>
+<li>It is an error to do exponentiation with anything other than unitless values.</li>
+<li>You will need to change your interpreter quite a bit: it will need to keep track of which values have units attached and which do not. It also now has the possibility of generating a runtime error.</li>
+<li>In the example above, units can be introduced by adding a unit to a value as a suffix: this makes a unitless value into a value with a unit, or checks that a value with units has the indicated units. Alternatively, a conversion can be indicated by writing “as <unit>”; this convets a value with units into the indicated units, and is an error for values without units. See the above examples. This is just a suggestion; you do not have to organize your calculator in exactly this way.</li>
+</ul></li>
+<li><p>Support for simple algebraic expressions involving polynomials. For example:</p>
+<pre><code>&gt; (x+1)^2
+(x + 1)^2
+  = x^2 + 2*x + 1
+&gt; (x+1)*(y-3)
+(x + 1) * (y - 3)
+  = x * y - 3 * x + y - 3
+&gt; (x^2 + 3*x + 1) / (x + 1)
+  Sorry, division of polynomials is not supported.</code></pre>
+<p>If you want to be really fancy you could support polynomial division too:</p>
+<pre><code>&gt; (x^2 + 3*x + 1) / (x + 1)
+(x^2 + 3 * x + 1) / (x + 1)
+  = x + 2 - 1 / (x + 1)</code></pre></li>
+<li><p>You should also feel free to propose your own extensions; just be sure to run them by me to make sure you choose something with an appropriate level of difficulty.</p></li>
+</ol>
+</body>
+</html>

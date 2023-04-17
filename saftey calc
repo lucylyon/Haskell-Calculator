@@ -1,0 +1,243 @@
+Project 2: Calculator
+=====================
+
+For this project, you will implement the guts of a (fancy) calculator.
+I have provided you with a simple read-eval-print interface (in
+[CalcREPL.hs](CalcREPL.hs)) that lets the user type in expressions to
+be evaluated.  You will ultimately provide a function of type `String
+-> String` which accepts the user's input and produces a response.  Of
+course, your `String -> String` function should be decomposed into
+multiple phases, just like all of the language implementations we have
+been considering (such as parsing, pretty-printing, interpreting, and
+so on).  This project intentionally gives you much less guidance than
+the first project in terms of what specific data types and functions
+you should write, and how to decompose your solution.  However, you
+can of course use the modules we have done as templates to help guide
+you.
+
+Getting started
+---------------
+
+- Download the [provided zip file](calc.zip), which should contain several
+  files including [`CalcREPL.hs`](CalcREPL.hs),
+  [`Calc.lhs`](Calc.lhs), [`Parsing2.hs`](Parsing2.hs), and a
+  few configuration files such as `calc.cabal` and `stack.yaml`.
+
+- Extract the contents of the zip file.
+
+- If you do not have Haskell working on your computer you can use
+  `replit.com` to complete this project. Simply upload all the
+  provided files to a new `replit.com` project.
+
+- While working on your calculator, to load it into `ghci` (e.g. in
+   order to try out a function), you can use the `stack repl` command.
+
+- To compile and run your calculator, you can use the command `stack run`
+  (this should be typed at a terminal/shell prompt, not at a ghci
+  prompt).
+
+    - You should get a calculator prompt where you can enter expressions (though
+      it will not do anything yet).
+
+    - Simply exit the calculator and rerun `stack run` every time
+      you want to test changes you have made to `Calc.lhs`.
+
+Level 1
+-------
+
+Your calculator must support the following features:
+
+- Floating-point numbers (represented as `Double` values)
+- Standard arithmetic operations `+`, `-`, `*`, `/`, and `^`
+  as well as prefix negation
+- Display appropriate error messages to the user instead of crashing
+- Display appropriate startup and `:help` messages which
+  explain/illustrate the features of the calculator.
+
+Your calculator must never crash with a runtime error or
+pattern-match failure.
+
+Get started by editing the starter code below and adding to it as
+appropriate!
+
+General notes and hints
+-----------------------
+
++ You can use the `reserved` token parser to parse things like
+  function names, names of constants or units, *etc.*
++ You can use the `naturalOrFloat` token parser to parse literal
+  values that can either be an integer or a floating-point value. Note
+  it does not handle negatives; that should be taken care of
+  automatically by your prefix negation operator.
++ You can use `fromIntegral` to convert from `Integer` to `Double`.
++ You should use the `parse` function to run your parser.  If it
+  returns an error wrapped in a `Left` constructor, you can simply
+  call `show` on the resulting error to turn it into a `String`
+  appropriate for displaying to the calculator user.
++ The `parseSome` function can be used as before for experimenting
+  with parsers in GHCi.
++ Exponentiation for `Double` values in Haskell is done with the
+  `(**)` operator.  (The `(^)` operator is only for integers.)
+
+Starter code
+------------
+
+
+> {-# LANGUAGE GADTs #-}
+> {-# OPTIONS_GHC -Wall #-}
+> module Calc where
+> import           Parsing2
+> import qualified Data.Map as M
+> import Text.Printf
+
+ import qualified Data.Functor
+  
+
+ --------------------
+ ---- Data Types ----        
+ --------------------
+
+> data Arith where
+>   Lit :: Double -> Arith                          -- this is basically the same as what we did in class, 
+>   Neg :: Arith -> Arith                           -- but Lit is a double, and Neg allows negatives
+>   Pi  :: Arith                                    -- supposed to be pi, but not fully
+>   E   :: Arith                                    -- "" e
+>   Bin :: Op -> Arith -> Arith -> Arith            -- if there is anything after pi or e, it doesn't look at them
+>   deriving (Show)                                 -- they should probably be Float -> Arith, but I couldn't get that to work either 
+>                                                   -- so I am giving up
+> 
+> data Op where                                     -- from class, but with exponentiation
+>   Plus      :: Op
+>   Minus     :: Op
+>   Times     :: Op
+>   Divide    :: Op
+>   Exponent  :: Op
+>   deriving (Show, Eq)
+>
+> 
+> data InterpError where                            -- from class
+>   DivideByZero :: InterpError
+>
+> type Env = M.Map String Integer
+
+ ---------------------
+ ----- Parsers -------       
+ ---------------------
+
+> parseArith :: Parser Arith
+> parseArith = buildExpressionParser table parseArithAtom
+>   where                                                                 -- the same as what we did in class, but 
+>     table = [   [ Infix (Bin Exponent <$ reservedOp "^") AssocRight ]    -- added exponentiation, highest precedence because PEMDAS
+>               , [ Infix (Bin Times    <$ reservedOp "*") AssocLeft      -- ^ is AssocRight so it follows math rules
+>               ,   Infix (Bin Divide   <$ reservedOp "/") AssocLeft ]     -- ex. 2^3^4 = 2^(3^4) instead of (2^3)^4 
+>               , [ Infix (Bin Plus     <$ reservedOp "+") AssocLeft
+>               ,   Infix (Bin Minus    <$ reservedOp "-") AssocLeft ]
+>             ] 
+>
+> parseArithAtom :: Parser Arith
+> parseArithAtom =  parens parseArith 
+>                  <|> Pi  <$ (string "Pi" <|> string "pi")               -- parses Pi
+>                  <|> E   <$ string "e"
+>                  <|> Neg <$> (reservedOp "-" *> parseArithAtom)         -- parses negatives 
+>                  <|> Lit <$> (try float <|> fromIntegral <$> integer)   -- tries to parse a double into a Lit 
+>                                                                         -- if it can't, it parses it as an integer
+>                                                                         -- then converts it to a double
+>                                                                         -- this made more sense to me than naturalOrFloat
+> arith :: Parser Arith
+> arith = whiteSpace *> parseArith <* eof                                                 
+>
+> lexer :: TokenParser u
+> lexer = makeTokenParser emptyDef
+>   { reservedNames = ["s, m, h, day, year"] }
+>
+> parens :: Parser a -> Parser a
+> parens     = getParens lexer
+>
+> reservedOp :: String -> Parser ()                                       -- a bajilion parsers from class
+> reservedOp = getReservedOp lexer
+>
+> reserved :: String -> Parser ()
+> reserved = getReserved lexer
+>
+> integer :: Parser Integer
+> integer    = getInteger lexer
+>
+> float :: Parser Double
+> float = getFloat lexer
+>
+> naturalOrFloat :: Parser (Either Integer Double)
+> naturalOrFloat = getNaturalOrFloat lexer
+
+> whiteSpace :: Parser ()
+> whiteSpace = getWhiteSpace lexer
+>
+> identifier :: Parser String
+> identifier = getIdentifier lexer
+
+ ------------------------
+ ---- Interpreters ------       
+ ------------------------
+
+> showInterpError :: InterpError -> String                                          -- displays error messages
+> showInterpError DivideByZero      = "you should know you can't divide by zero..."
+
+> interpArith :: Env -> Arith -> Either InterpError Double                          -- same as class, changed Integer to Double
+> interpArith _ Pi                              = Right pi
+> interpArith _ E                               = Right (exp 1)                     -- e = 2.71828
+> interpArith _   (Lit x)                       = Right x
+> interpArith env (Neg x)                       = negate <$> interpArith env x      -- Negates an arith
+> interpArith env (Bin Plus arith1 arith2)      = (+) <$> interpArith env arith1 <*> interpArith env arith2
+> interpArith env (Bin Minus arith1 arith2)     = (-) <$> interpArith env arith1 <*> interpArith env arith2
+> interpArith env (Bin Times arith1 arith2)     = (*) <$> interpArith env arith1 <*> interpArith env arith2
+> interpArith env (Bin Divide arith1 arith2)    = interpArith env arith2 >>= \v ->
+>                                                   case v of
+>                                                   0 -> Left DivideByZero
+>                                                   _ -> (/) <$> interpArith env arith1 <*> Right v
+> interpArith env (Bin Exponent arith1 arith2)  = (**) <$> interpArith env arith1 <*> interpArith env arith2 -- Exponentiation
+
+Edit this description and replace it with your own!  It gets printed
+when the calculator interface first starts up.
+
+> description :: String
+> description = unlines
+>   [ " "
+>   ,  "math time :("
+>   , "Features this calculator supports: math things. hopefully."
+>   , "Type an expression, :help, or :quit."
+>   ]
+
+Edit this help message and replace it with your own! It gets printed
+when the user types `:help`.  Adding some well-chosen examples could
+be a good way to concisely show off the different features of your
+calculator.
+
+> helpMsg :: String
+> helpMsg = unlines
+>   [ "You can use integers or floating point values, pi and e (but only at the end of an expression)",
+>     "negation, or standard arithmetic operators + - * / ^ ",
+>     "if that doesn't work, try a TI-84"
+>   ]
+
+This is the main function that is called by `CalcREPL` to evaluate
+user input. 
+
+-- makes things look nice
+
+> prettyPrint :: Arith -> String
+> prettyPrint E = "e"
+> prettyPrint Pi = "π"
+> prettyPrint (Lit x)                      = show x
+> prettyPrint (Neg x)                      = "- " ++ prettyPrint x
+> prettyPrint (Bin Plus arith1 arith2)     = prettyPrint arith1 ++ " + " ++ prettyPrint arith2
+> prettyPrint (Bin Minus arith1 arith2)    = prettyPrint arith1 ++ " - " ++ prettyPrint arith2
+> prettyPrint (Bin Times arith1 arith2)    = prettyPrint arith1 ++ " * " ++ prettyPrint arith2
+> prettyPrint (Bin Divide arith1 arith2)   = prettyPrint arith1 ++ " / " ++ prettyPrint arith2
+> prettyPrint (Bin Exponent arith1 arith2) = prettyPrint arith1 ++ " ^ " ++ prettyPrint arith2
+
+> calc :: String -> String
+> calc input = case parse parseArith input of         
+>          Left l -> show l                               -- if there's a parse error, show it
+>          Right r -> case interpArith M.empty r of       -- interpret it
+>                      Left err -> showInterpError err    -- if there's an interpretation error, show it
+>                      Right answer -> prettyPrint r ++ "\n   = " ++ printf "%f" answer 
+>                      -- everything works, do the math, display it 
