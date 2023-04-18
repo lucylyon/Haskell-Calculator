@@ -16,6 +16,7 @@ main = putStrLn description >> runInputT settings loop
       case minput of
         Nothing      -> return ()
         Just s | s `isPrefixOf` ":quit" -> return ()
+               | s `isPrefixOf` ":q" -> return ()
                | s `isPrefixOf` ":help" -> (outputStrLn $ helpMsg) >> loop
         Just input   -> do
           outputStrLn $ calc input
