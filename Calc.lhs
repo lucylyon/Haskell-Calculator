@@ -1,4 +1,5 @@
 > {-# OPTIONS_GHC -Wall #-}
+
 > {-# LANGUAGE GADTs #-}
 
 > module Calc where
@@ -16,7 +17,7 @@
 >   Pi      :: Arith                                    
 >   E       :: Arith                                    
 >   Trig    :: TrigOp -> Arith -> Arith
->   Length  :: Arith -> Units -> Arith 
+>   Length  :: Arith -> Unit -> Arith 
 >   Bin     :: Op -> Arith -> Arith -> Arith           
 >   deriving (Show)                                 
 >                                                   
@@ -37,19 +38,20 @@
 >   Abs :: TrigOp
 >   deriving (Show, Eq)
 
-** ADD CENTIMETERS **
-
-> data Units where
->    Meters :: Units
->    Kilometers :: Units
->    Miles :: Units
->    Feet :: Units
->    Inches :: Units
+> data Unit where
+>    Inch       :: Unit
+>    Foot       :: Unit
+>    Yard       :: Unit 
+>    Mile       :: Unit
+>    Centimeter :: Unit 
+>    Meter      :: Unit
+>    Kilometer :: Unit
 >    deriving (Show)
+
 
 > data Type where
 >     TypeLit :: Type
->     TypeLength :: Units -> Type
+>     TypeLength :: Unit -> Type
 >     deriving (Show)
 
 > data Value where
@@ -78,7 +80,7 @@
 
 > parseArithAtom :: Parser Arith
 > parseArithAtom = try parseLength
->                  <|> (Lit <$> (Value <$> double <*> pure TypeLit))
+>                  <|> (Lit <$> (Value <$> parseDouble <*> pure TypeLit))
 >                  <|> Neg <$> (reservedOp "-" *> parseArithAtom)
 >                  <|> Pi  <$ (reserved "Pi" <|> reserved "pi")
 >                  <|> E   <$ reserved "e"
@@ -88,26 +90,62 @@
 CASTING DOESNT WORK - GET IT TO? 
 
 > parseLength :: Parser Arith
-> parseLength = Lit <$> (Value <$> double <*> (TypeLength <$> parseUnits))
+> parseLength = Lit <$> (Value <$> parseDouble <*> (TypeLength <$> parseUnit))
+
+> parseDouble :: Parser Double 
+> parseDouble = try float <|> fromIntegral <$> integer
 
 % > parseCast :: Parser Arith
-% > parseCast = Length <$> (parens parseArith) <* reservedOp "as" <*> parseUnits
+% > parseCast = Length <$> (parens parseArith) <* reservedOp "as" <*> parseUnit
 
-> parseUnits :: Parser Units
-> parseUnits =
->     (Miles      <$ reservedOp "miles")   <|>
->     (Miles      <$ reservedOp "mile")    <|>
->     (Miles      <$ reservedOp "mi")      <|>
->     (Meters     <$ reservedOp "meters")  <|>
->     (Meters     <$ reservedOp "meter")   <|>
->     (Meters     <$ reservedOp "m")       <|>
->     (Kilometers <$ reservedOp "km")      <|>
->     (Feet       <$ reservedOp "foot")    <|>
->     (Feet       <$ reservedOp "feet")    <|>
->     (Feet       <$ reservedOp "ft")      <|>
->     (Inches     <$ reservedOp "inches")  <|>
->     (Inches     <$ reservedOp "inch")    <|>
->     (Inches     <$ reservedOp "in")
+> parseUnit :: Parser Unit
+> parseUnit =
+>     (Inch     <$ reservedOp "in")        <|>
+>     (Inch     <$ reservedOp "Inch")      <|>
+>     (Inch     <$ reservedOp "inch")      <|>
+>     (Inch     <$ reservedOp "Inches")    <|>
+>     (Inch     <$ reservedOp "inches")    <|>
+
+>     (Foot       <$ reservedOp "ft")      <|>
+>     (Foot       <$ reservedOp "Foot")    <|>
+>     (Foot       <$ reservedOp "foot")    <|>
+>     (Foot       <$ reservedOp "Feet")    <|>
+>     (Foot       <$ reservedOp "feet")    <|>
+
+>     (Yard       <$ reservedOp "yd")      <|>
+>     (Yard       <$ reservedOp "Yard")    <|>
+>     (Yard       <$ reservedOp "yard")    <|>
+>     (Yard       <$ reservedOp "Yards")   <|>
+>     (Yard       <$ reservedOp "yards")   <|>
+
+>     (Mile      <$ reservedOp "mi")      <|>
+>     (Mile      <$ reservedOp "Mile")    <|>
+>     (Mile      <$ reservedOp "mile")    <|>
+>     (Mile      <$ reservedOp "Miles")   <|>
+>     (Mile      <$ reservedOp "miles")   <|>
+
+>     (Centimeter       <$ reservedOp "cm")           <|>
+>     (Centimeter       <$ reservedOp "Centimeter")   <|>
+>     (Centimeter       <$ reservedOp "centimeter")   <|>
+>     (Centimeter       <$ reservedOp "Centimeters")  <|>
+>     (Centimeter       <$ reservedOp "centimeters")  <|>
+
+>     (Meter     <$ reservedOp "m")       <|>
+>     (Meter     <$ reservedOp "Meter")   <|>
+>     (Meter     <$ reservedOp "meter")   <|>
+>     (Meter     <$ reservedOp "Meters")  <|>
+>     (Meter     <$ reservedOp "meters")  <|>
+
+>     (Kilometer <$ reservedOp "km")            <|>
+>     (Kilometer <$ reservedOp "Kilometer")     <|>
+>     (Kilometer <$ reservedOp "kilometer")     <|>
+>     (Kilometer <$ reservedOp "Kilometers")    <|>
+>     (Kilometer <$ reservedOp "kilometers")      
+
+
+
+
+
 
 > lexer :: TokenParser u
 > lexer = makeTokenParser emptyDef
@@ -121,12 +159,6 @@ CASTING DOESNT WORK - GET IT TO?
 
 > reserved :: String -> Parser ()
 > reserved = getReserved lexer
-
-> double :: Parser Double               -- CHANGE THIS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-> double     = toDouble <$> getNaturalOrFloat lexer     -- ORIGINAL - PARSE DOUBLE
->    where
->        toDouble (Left i) = fromIntegral i
->        toDouble (Right f) = f
 
 > whiteSpace :: Parser ()
 > whiteSpace = getWhiteSpace lexer
@@ -144,55 +176,57 @@ CASTING DOESNT WORK - GET IT TO?
 ---- Type Checking -----       
 ------------------------
 
-% > data TypeError where        THIS IS MY SHIT. CHANGE IT WHEN IT WORKS
-% >   TypeMismatchError :: TypeError -- these types don't work well together. you should change them 
-% >   BadExponents :: TypeError -- can't do exponentation with length. thats silly
-% >   BadDivision :: TypeError -- mixing lengths and division is annoying. it's not gonna happen
-% >   BadMultiplication :: TypeError -- you cant multiply two lengths
-% >   DoLater :: TypeError
+> data TypeError where       -- THIS IS MY SHIT. CHANGE IT WHEN IT WORKS
+>   TypeMismatchError :: TypeError -- these types don't work well together. you should change them 
+>   BadExponents :: TypeError -- can't do exponentation with length. thats silly
+>   BadDivision :: TypeError -- mixing lengths and division is annoying. it's not gonna happen
+>   BadMultiplication :: TypeError -- you cant multiply two lengths
+>   DoLater :: TypeError
 
-% > showTypeError :: TypeError -> String
-% > showTypeError TypeMismatchError =  "either everything has to be a measurement of length, or nothing is. you can't have it all"
-% > showTypeError BadExponents      = "you can't do exponentation with length. that's silly"
-% > showTypeError BadDivision       = "mixing lengths and division is annoying. it's not gonna happen"
-% > showTypeError BadMultiplication = "you can't multiply two lengths"
 
-> data InferError where                 --- NOT MINE, CHANGE TO TYPEERROR
->     MismatchedUnits :: InferError
->     MaxOneUnit :: InferError
->     BadDivisorUnits :: InferError
->     BadExpTypes :: InferError
->     InvalidCast :: InferError
->     deriving (Show)
+> showTypeError :: TypeError -> String
+> showTypeError TypeMismatchError =  "either everything has to be a measurement of length, or nothing is. you can't have it all"
+> showTypeError BadExponents      = "you can't do exponentation with length. that's silly"
+> showTypeError BadDivision       = "mixing lengths and division is annoying. it's not gonna happen"
+> showTypeError BadMultiplication = "you can't multiply two lengths"
+> showTypeError DoLater = "type error - do later"
 
-> showInferError :: InferError -> String
-> showInferError MismatchedUnits = "Expression requires same units on both terms"
-> showInferError MaxOneUnit = "Not more than one term can be length"
-> showInferError BadDivisorUnits = "Only length can be divided by length"
-> showInferError BadExpTypes = "Exponent can not have units"
-> showInferError InvalidCast = "Cannot cast value without units"
+% > data InferError where                 --- NOT MINE, CHANGE TO TYPEERROR
+% >     MismatchedUnits :: InferError
+% >     MaxOneUnit :: InferError
+% >     BadDivisorUnits :: InferError
+% >     BadExpTypes :: InferError
+% >     InvalidCast :: InferError
+% >     deriving (Show)
+
+% > showInferError :: InferError -> String
+% > showInferError MismatchedUnits = "Expression requires same units on both terms"
+% > showInferError MaxOneUnit = "Not more than one term can be length"
+% > showInferError BadDivisorUnits = "Only length can be divided by length"
+% > showInferError BadExpTypes = "Exponent can not have units"
+% > showInferError InvalidCast = "Cannot cast value without units"
 
 
 CHANGE ALL OF THIS 
 
-> inferType :: Arith -> Either InferError Type
+> inferType :: Arith -> Either TypeError Type
 > inferType (Lit (Value _ t)) = Right t
 > inferType (Bin Plus e1 e2) = inferTerms e1 e2 inferAddSub
 > inferType (Bin Minus e1 e2) = inferTerms e1 e2 inferAddSub
 > inferType (Bin Times e1 e2) = inferTerms e1 e2 inferMul
 > inferType (Bin Divide e1 e2) = inferTerms e1 e2 inferDiv
 > inferType (Bin Exponent e1 e2) = inferTerms e1 e2 inferExp
-> inferType (Length  e1 u)  = inferType (Length e1 u) >>= inferCast
+> inferType (Length  e1 unit)  = inferType (Length e1 unit) >>= inferCast
 >     where
->         inferCast TypeLit = Left InvalidCast
->         inferCast _      = Right (TypeLength u)
+>         inferCast TypeLit = Left DoLater -- FIX THIS !!!!!!!!!!!!!
+>         inferCast _      = Right (TypeLength unit)
 > inferType (Neg x) = inferType x
 > inferType Pi = Right TypeLit
 > inferType E = Right TypeLit
 > inferType (Trig _ _) = Right TypeLit -- MAYBE?? CHANGE? IDK
 
 
-> inferTerms :: Arith -> Arith -> (Type -> Type -> Either InferError Type) -> Either InferError Type
+> inferTerms :: Arith -> Arith -> (Type -> Type -> Either TypeError Type) -> Either TypeError Type
 > inferTerms e1 e2 f = do
 >     u1 <- inferType e1
 >     u2 <- inferType e2
@@ -202,24 +236,24 @@ CHANGE ALL OF THIS
 CHANGE THIS. THIS ISNT HOW I CODE. 
 
 
-> inferAddSub, inferMul, inferDiv, inferExp :: Type -> Type -> Either InferError Type
+> inferAddSub, inferMul, inferDiv, inferExp :: Type -> Type -> Either TypeError Type
 
-> inferAddSub (TypeLength u) (TypeLength _) = Right (TypeLength u)
+> inferAddSub (TypeLength unit) (TypeLength _) = Right (TypeLength unit)
 > inferAddSub TypeLit     TypeLit     = Right TypeLit
-> inferAddSub _          _          = Left MismatchedUnits
+> inferAddSub _          _          = Left TypeMismatchError
 
-> inferMul (TypeLength u) TypeLit     = Right (TypeLength u)
-> inferMul TypeLit     (TypeLength u) = Right (TypeLength u)
+> inferMul (TypeLength unit) TypeLit     = Right (TypeLength unit)
+> inferMul TypeLit     (TypeLength unit) = Right (TypeLength unit)
 > inferMul TypeLit     TypeLit     = Right TypeLit
-> inferMul _          _          = Left MaxOneUnit
+> inferMul _          _          = Left TypeMismatchError
 
 > inferDiv (TypeLength _) (TypeLength _) = Right TypeLit
-> inferDiv (TypeLength u) TypeLit     = Right (TypeLength u)
+> inferDiv (TypeLength unit) TypeLit     = Right (TypeLength unit)
 > inferDiv TypeLit     TypeLit     = Right TypeLit
-> inferDiv _          _          = Left BadDivisorUnits
+> inferDiv _          _          = Left BadDivision
 
 > inferExp TypeLit  TypeLit  = Right TypeLit
-> inferExp _       _       = Left BadExpTypes
+> inferExp _       _       = Left BadExponents
 
 ------------------------
 ----- Interpreters -----       
@@ -237,9 +271,9 @@ CHANGE THIS. THIS ISNT HOW I CODE.
 > interpArith :: Env -> Arith -> Either InterpError Double
 > interpArith _ Pi                            = Right pi
 > interpArith _ E                             = Right (exp 1)                     -- e = 2.71828
-> interpArith _ (Lit i) = Right $ toNumber i -- CHANGE THIS HERE!!!!!!!!!!!!!!!!
+> interpArith _ (Lit x)                       = Right (toDouble x) 
 > interpArith e (Neg x)                       = negate <$> interpArith e x      -- Negates an arith
-> interpArith e (Length x _)               = interpArith e x
+> interpArith e (Length x _)                  = interpArith e x
 > interpArith e (Bin Plus arith1 arith2)      = (+) <$> interpArith e arith1 <*> interpArith e arith2
 > interpArith e (Bin Minus arith1 arith2)     = (-) <$> interpArith e arith1 <*> interpArith e arith2
 > interpArith e (Bin Times arith1 arith2)     = (*) <$> interpArith e arith1 <*> interpArith e arith2
@@ -254,18 +288,50 @@ CHANGE THIS. THIS ISNT HOW I CODE.
 > interpArith e (Trig Log x)              = log <$> interpArith e x 
 > interpArith e (Trig Abs x)              = abs <$> interpArith e x
 
+------------------------
+----- Conversions ------       
+------------------------
 
+> inInches :: Double -> Unit -> Double -- doing all the math in inches and converting it at the end. 
+> inInches x Inch       = x                 -- everything else was too hard 
+> inInches x Foot       = x * 12
+> inInches x Yard       = x * 36
+> inInches x Mile       = x * 63360
+> inInches x Centimeter = x * 2.54
+> inInches x Meter      = x * 0.0254
+> inInches x Kilometer  = x * 0.0000254 
+
+> fromInches :: Double -> Unit -> Double   -- putting everything back into whatever it was originally
+> fromInches x Inch       = x                 
+> fromInches x Foot       = x / 12
+> fromInches x Yard       = x / 36
+> fromInches x Mile       = x / 63360
+> fromInches x Centimeter = x / 2.54
+> fromInches x Meter      = x / 0.0254
+> fromInches x Kilometer  = x / 0.0000254 
+
+> toDouble :: Value -> Double
+> toDouble (Value x TypeLit)     = x
+> toDouble (Value x (TypeLength unit)) = inInches x unit     
+
+> toValue :: Double -> Type -> Value
+> toValue x TypeLit     = Value x TypeLit
+> toValue x (TypeLength unit) = Value (fromInches x unit) (TypeLength unit)
 
 ------------------------
 ---- Display Stuff -----       
 ------------------------
 
-> showValue :: Value -> String
-> showValue (Value x TypeLit)     = show x
-> showValue (Value x (TypeLength u)) = show x ++ " " ++ prettyLength u
+> prettyValue :: Value -> String
+> prettyValue (Value x TypeLit)     = show x
+> prettyValue (Value x (TypeLength unit)) = show x ++ " " ++ prettyLength unit
 
-> showAs :: Type -> Double -> String
-> showAs u x = showValue (toValue x u)
+% > showAs :: Type -> Double -> String
+% > showAs typ x = prettyValue (toValue x typ)
+
+%  type       double                      double type 
+% showAs r answer -- prettyValue  (toValue answer r)
+
 
 > prettyPrint :: Arith -> String
 > prettyPrint E                            = "e"
@@ -290,37 +356,21 @@ CHANGE THIS. THIS ISNT HOW I CODE.
 > prettyTrigOp Log = " log "
 > prettyTrigOp Abs = " abs "
 
-> prettyLength :: Units -> String
-> prettyLength Inches     = "in"
-> prettyLength Feet       = "ft" 
-> prettyLength Miles      = "mi"        
-> prettyLength Meters     = "m"
-> prettyLength Kilometers = "km"
-
-
-
-
-> inBaseUnits :: Units -> Double
-> inBaseUnits Meters     =    1.0
-> inBaseUnits Kilometers = 1000.0
-> inBaseUnits Miles      = 1609.344
-> inBaseUnits Feet       =    0.3048
-> inBaseUnits Inches     =    0.0254
-
-> toNumber :: Value -> Double
-> toNumber (Value x TypeLit)     = x
-> toNumber (Value x (TypeLength u)) = x * inBaseUnits u
-
-> toValue :: Double -> Type -> Value
-> toValue x TypeLit     = Value x TypeLit
-> toValue l (TypeLength u) = Value (l / inBaseUnits u) (TypeLength u)
-
+> prettyLength :: Unit -> String
+> prettyLength Inch     = "in"
+> prettyLength Foot       = "ft" 
+> prettyLength Yard = "yd"
+> prettyLength Mile      = "mi"        
+> prettyLength Centimeter = "cm"
+> prettyLength Meter     = "m"
+> prettyLength Kilometer = "km"
 
 > description :: String
 > description = unlines
 >   [ " "
 >   ,  "math time :("
->   , "Features this calculator supports: math things. hopefully."
+>   , "Features this calculator supports: more math things than last time."
+>   , "ADD SHIT TO THIS. IT IS INCOMPLETE. also the help "
 >   , "Type an expression, :help, or :quit."
 >   ]
 
@@ -335,7 +385,9 @@ CHANGE THIS. THIS ISNT HOW I CODE.
 > calc input = case parse arith input of
 >     Left err -> show err
 >     Right expr -> case inferType expr of
->         Left inferErr -> showInferError inferErr
+>         Left inferErr ->  showTypeError inferErr
 >         Right r -> case interpArith M.empty expr of 
 >                       Left err -> showInterpError err 
->                       Right answer -> prettyPrint expr ++ "\n  = " ++ showAs r answer 
+>                       Right answer -> prettyPrint expr ++ "\n  = " ++ prettyValue  (toValue answer r) 
+
+-- showAs r answer -- prettyValue  (Value answer r)
