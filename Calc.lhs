@@ -1,4 +1,4 @@
-> {-# OPTIONS_GHC -Wall #-}
+ {-# OPTIONS_GHC -Wall #-}
 
 > {-# LANGUAGE GADTs #-}
 
@@ -7,9 +7,17 @@
 > import qualified Data.Map as M
 
   
+  
  --------------------
  ---- Data Types ----        
  --------------------
+
+ TO DO 
+ implement casting
+ all the type checking/inferring - look at mod 10? 
+
+dont let it do shit with trigOp 
+sin 3ft - make it error. it is not. 
 
 > data Arith where
 >   Lit     :: Value -> Arith                  
@@ -17,7 +25,7 @@
 >   Pi      :: Arith                                    
 >   E       :: Arith                                    
 >   Trig    :: TrigOp -> Arith -> Arith
->   Length  :: Arith -> Unit -> Arith 
+>   Length  :: Double -> Unit -> Arith 
 >   Bin     :: Op -> Arith -> Arith -> Arith           
 >   deriving (Show)                                 
 >                                                   
@@ -52,7 +60,9 @@
 > data Type where
 >     TypeLit :: Type
 >     TypeLength :: Unit -> Type
+>     TypeTrig :: Type 
 >     deriving (Show)
+
 
 > data Value where
 >    Value :: Double -> Type -> Value
@@ -100,11 +110,11 @@ CASTING DOESNT WORK - GET IT TO?
 
 > parseUnit :: Parser Unit
 > parseUnit =
->     (Inch     <$ reservedOp "in")        <|>
->     (Inch     <$ reservedOp "Inch")      <|>
->     (Inch     <$ reservedOp "inch")      <|>
 >     (Inch     <$ reservedOp "Inches")    <|>
 >     (Inch     <$ reservedOp "inches")    <|>
+>     (Inch     <$ reservedOp "Inch")      <|>
+>     (Inch     <$ reservedOp "inch")      <|>
+>     (Inch     <$ reservedOp "in")        <|>
 
 >     (Foot       <$ reservedOp "ft")      <|>
 >     (Foot       <$ reservedOp "Foot")    <|>
@@ -113,38 +123,35 @@ CASTING DOESNT WORK - GET IT TO?
 >     (Foot       <$ reservedOp "feet")    <|>
 
 >     (Yard       <$ reservedOp "yd")      <|>
->     (Yard       <$ reservedOp "Yard")    <|>
->     (Yard       <$ reservedOp "yard")    <|>
 >     (Yard       <$ reservedOp "Yards")   <|>
 >     (Yard       <$ reservedOp "yards")   <|>
+>     (Yard       <$ reservedOp "Yard")    <|>
+>     (Yard       <$ reservedOp "yard")    <|>
 
->     (Mile      <$ reservedOp "mi")      <|>
->     (Mile      <$ reservedOp "Mile")    <|>
->     (Mile      <$ reservedOp "mile")    <|>
 >     (Mile      <$ reservedOp "Miles")   <|>
 >     (Mile      <$ reservedOp "miles")   <|>
+>     (Mile      <$ reservedOp "Mile")    <|>
+>     (Mile      <$ reservedOp "mile")    <|>
+>     (Mile      <$ reservedOp "mi")      <|>
 
 >     (Centimeter       <$ reservedOp "cm")           <|>
->     (Centimeter       <$ reservedOp "Centimeter")   <|>
->     (Centimeter       <$ reservedOp "centimeter")   <|>
 >     (Centimeter       <$ reservedOp "Centimeters")  <|>
 >     (Centimeter       <$ reservedOp "centimeters")  <|>
+>     (Centimeter       <$ reservedOp "Centimeter")   <|>
+>     (Centimeter       <$ reservedOp "centimeter")   <|>
 
->     (Meter     <$ reservedOp "m")       <|>
->     (Meter     <$ reservedOp "Meter")   <|>
->     (Meter     <$ reservedOp "meter")   <|>
 >     (Meter     <$ reservedOp "Meters")  <|>
 >     (Meter     <$ reservedOp "meters")  <|>
+>     (Meter     <$ reservedOp "Meter")   <|>
+>     (Meter     <$ reservedOp "meter")   <|>
+>     (Meter     <$ reservedOp "m")       <|>
+
 
 >     (Kilometer <$ reservedOp "km")            <|>
->     (Kilometer <$ reservedOp "Kilometer")     <|>
->     (Kilometer <$ reservedOp "kilometer")     <|>
 >     (Kilometer <$ reservedOp "Kilometers")    <|>
->     (Kilometer <$ reservedOp "kilometers")      
-
-
-
-
+>     (Kilometer <$ reservedOp "kilometers")    <|>  
+>     (Kilometer <$ reservedOp "Kilometer")     <|>
+>     (Kilometer <$ reservedOp "kilometer")     
 
 
 > lexer :: TokenParser u
@@ -176,7 +183,9 @@ CASTING DOESNT WORK - GET IT TO?
 ---- Type Checking -----       
 ------------------------
 
-> data TypeError where       -- THIS IS MY SHIT. CHANGE IT WHEN IT WORKS
+> type Ctx = M.Map String Type 
+
+> data TypeError where       
 >   TypeMismatchError :: TypeError -- these types don't work well together. you should change them 
 >   BadExponents :: TypeError -- can't do exponentation with length. thats silly
 >   BadDivision :: TypeError -- mixing lengths and division is annoying. it's not gonna happen
@@ -191,69 +200,145 @@ CASTING DOESNT WORK - GET IT TO?
 > showTypeError BadMultiplication = "you can't multiply two lengths"
 > showTypeError DoLater = "type error - do later"
 
-% > data InferError where                 --- NOT MINE, CHANGE TO TYPEERROR
-% >     MismatchedUnits :: InferError
-% >     MaxOneUnit :: InferError
-% >     BadDivisorUnits :: InferError
-% >     BadExpTypes :: InferError
-% >     InvalidCast :: InferError
-% >     deriving (Show)
 
-% > showInferError :: InferError -> String
-% > showInferError MismatchedUnits = "Expression requires same units on both terms"
-% > showInferError MaxOneUnit = "Not more than one term can be length"
-% > showInferError BadDivisorUnits = "Only length can be divided by length"
-% > showInferError BadExpTypes = "Exponent can not have units"
-% > showInferError InvalidCast = "Cannot cast value without units"
+% > stupidCheck :: Type -> Type -> Bool
+% > stupidCheck TypeLit TypeLit = True
+% > stupidCheck (TypeLength _) (TypeLength _) = True
+% > stupidCheck _ _ = False
+
+% > check :: Ctx -> Arith -> Type -> Either TypeError ()
+% > check ctx arith t = case (infer ctx arith) of
+% >                            Left l -> Left l 
+% >                            Right r
+% >                             | r == t -> Right ()
+% >                             | otherwise -> Left TypeMismatchError -- arith r t )
 
 
-CHANGE ALL OF THIS 
+> infer :: Ctx -> Arith -> Either TypeError Type
+> infer ctx (Lit (Value x t)) = Right t 
+> infer ctx Pi = Right TypeLit
+> infer ctx E = Right TypeLit
+> infer ctx (Neg arith) = infer ctx arith
 
-> inferType :: Arith -> Either TypeError Type
-> inferType (Lit (Value _ t)) = Right t
-> inferType (Bin Plus e1 e2) = inferTerms e1 e2 inferAddSub
-> inferType (Bin Minus e1 e2) = inferTerms e1 e2 inferAddSub
-> inferType (Bin Times e1 e2) = inferTerms e1 e2 inferMul
-> inferType (Bin Divide e1 e2) = inferTerms e1 e2 inferDiv
-> inferType (Bin Exponent e1 e2) = inferTerms e1 e2 inferExp
-> inferType (Length  e1 unit)  = inferType (Length e1 unit) >>= inferCast
->     where
->         inferCast TypeLit = Left DoLater -- FIX THIS !!!!!!!!!!!!!
->         inferCast _      = Right (TypeLength unit)
-> inferType (Neg x) = inferType x
-> inferType Pi = Right TypeLit
-> inferType E = Right TypeLit
-> inferType (Trig _ _) = Right TypeLit -- MAYBE?? CHANGE? IDK
+> infer ctx (Bin op a b) = case infer ctx a of 
+>                           Left err -> Left err
+>                           Right aType -> case infer ctx b of
+>                                          Left err -> Left err 
+>                                          Right bType -> typeCheck op aType bType
 
+
+
+
+
+here. why does it work with length undefined. what. 
+> infer ctx (Trig trigOp arith) = infer ctx arith
+> infer ctx (Length arith unit) = undefined
+
+
+    
+
+% case (inferOp op) of
+% >                             (input1, input2, output) -> check ctx arith1 input1 *> 
+% >                                                         check ctx arith2 input2 *>
+% >                                                         Right output   
+% inferTerms e1 e2 inferAddSub
+
+
+% > inferOp :: Op -> (Type, Type, Type)
+% > inferOp Plus  = (TypeInt, TypeInt, TypeInt)
+% > inferOp Minus = (TypeInt, TypeInt, TypeInt)
+% > inferOp Times = (TypeInt, TypeInt, TypeInt)
+% > inferOp Div   = (TypeInt, TypeInt, TypeInt)
+% > inferOp Less  = (TypeInt, TypeInt, TypeBool)
+% > inferOp Equal = (TypeInt, TypeInt, TypeBool)
+
+% > inferOp :: Op -> Type -> Type -> Either TypeError Type 
+% > inferOp Exponent TypeLit TypeLit = Right TypeLit
+% > inferOp Exponent _ _ = Left BadExponents
+
+% > inferOp Divide x y -- = case 
+% >           | x == y = Right TypeLit
+
+
+        %    | x == (TypeLength u) && right == TypeLit = Right (TypeLength u)
+
+% if x == y 
+% >                        | Right TypeLit
+
+
+% > inferDiv (TypeLength _) (TypeLength _) = Right TypeLit
+% > inferDiv TypeLit     TypeLit     = Right TypeLit
+
+% > inferDiv (TypeLength u) TypeLit     = Right (TypeLength u)
+% > inferDiv _          _          = Left BadDivision
+
+
+
+% > inferExp TypeLit  TypeLit  = Right TypeLit
+% > inferExp _       _       = Left BadExponents
+
+% > inferTerms :: Arith -> Arith -> (Type -> Type -> Either TypeError Type) -> Either TypeError Type
+% > inferTerms e1 e2 f = do
+% >     u1 <- inferType e1
+% >     u2 <- inferType e2
+% >     f u1 u2 
 
 > inferTerms :: Arith -> Arith -> (Type -> Type -> Either TypeError Type) -> Either TypeError Type
-> inferTerms e1 e2 f = do
->     u1 <- inferType e1
->     u2 <- inferType e2
->     f u1 u2
+> inferTerms arith1 arith2 inferop =  undefined 
+
+(inferType arith1) >>= \t1 
+(inferType arith2) >>= \t2 
+inferop t1 t2 
 
 
-CHANGE THIS. THIS ISNT HOW I CODE. 
+% inferTerms e1 e2 inferAddSub
 
 
-> inferAddSub, inferMul, inferDiv, inferExp :: Type -> Type -> Either TypeError Type
+% > inferAddSub, inferMul, inferDiv, inferExp :: Type -> Type -> Either TypeError Type
 
-> inferAddSub (TypeLength unit) (TypeLength _) = Right (TypeLength unit)
-> inferAddSub TypeLit     TypeLit     = Right TypeLit
-> inferAddSub _          _          = Left TypeMismatchError
+% > inferAddSub (TypeLength u) (TypeLength _) = Right (TypeLength u)
+% > inferAddSub TypeLit     TypeLit     = Right TypeLit
+% > inferAddSub _          _          = Left TypeMismatchError
 
-> inferMul (TypeLength unit) TypeLit     = Right (TypeLength unit)
-> inferMul TypeLit     (TypeLength unit) = Right (TypeLength unit)
-> inferMul TypeLit     TypeLit     = Right TypeLit
-> inferMul _          _          = Left TypeMismatchError
+% > inferMul (TypeLength u) TypeLit     = Right (TypeLength u)
+% > inferMul TypeLit     (TypeLength u) = Right (TypeLength u)
+% > inferMul TypeLit     TypeLit     = Right TypeLit
+% > inferMul _          _          = Left TypeMismatchError
 
-> inferDiv (TypeLength _) (TypeLength _) = Right TypeLit
-> inferDiv (TypeLength unit) TypeLit     = Right (TypeLength unit)
-> inferDiv TypeLit     TypeLit     = Right TypeLit
-> inferDiv _          _          = Left BadDivision
+% > inferExp TypeLit  TypeLit  = Right TypeLit
+% > inferExp _       _       = Left BadExponents
 
-> inferExp TypeLit  TypeLit  = Right TypeLit
-> inferExp _       _       = Left BadExponents
+
+% > inferType (Bin Minus e1 e2) = inferTerms e1 e2 inferAddSub
+% > inferType (Bin Times e1 e2) = inferTerms e1 e2 inferMul
+% > inferType (Bin Divide e1 e2) = inferTerms e1 e2 inferDiv
+% > inferType (Bin Exponent e1 e2) = inferTerms e1 e2 inferExp
+% > inferType (Length  e1 unit)  = inferType (Length e1 unit) >>= inferCast
+% >     where
+% >         inferCast TypeLit = Left DoLater -- FIX THIS !!!!!!!!!!!!!
+% >         inferCast _      = Right (TypeLength unit)
+% > inferType (Neg x) = inferType x
+% > inferType Pi = Right TypeLit
+% > inferType E = Right TypeLit
+% > inferType (Trig _ _) = Right TypeLit -- MAYBE?? CHANGE? IDK
+
+
+
+
+> typeCheck :: Op -> Type -> Type -> Either TypeError Type
+> typeCheck Exponent TypeLit TypeLit = Right TypeLit
+> typeCheck Exponent _ _ = Left BadExponents
+> typeCheck Divide (TypeLength _) (TypeLength _) = Right TypeLit
+> typeCheck Divide TypeLit     TypeLit     = Right TypeLit
+> typeCheck Divide (TypeLength u) TypeLit     = Right (TypeLength u)
+> typeCheck Divide _          _          = Left BadDivision
+> typeCheck Times (TypeLength u) TypeLit     = Right (TypeLength u)
+> typeCheck Times TypeLit     (TypeLength u) = Right (TypeLength u)
+> typeCheck Times TypeLit     TypeLit     = Right TypeLit
+> typeCheck Times  _          _          = Left TypeMismatchError
+> typeCheck _ (TypeLength u) (TypeLength _) = Right (TypeLength u) -- addition and subtraction follow the same type rules
+> typeCheck _ TypeLit     TypeLit     = Right TypeLit
+> typeCheck _ _ _ = Left TypeMismatchError
 
 ------------------------
 ----- Interpreters -----       
@@ -273,7 +358,7 @@ CHANGE THIS. THIS ISNT HOW I CODE.
 > interpArith _ E                             = Right (exp 1)                     -- e = 2.71828
 > interpArith _ (Lit x)                       = Right (toDouble x) 
 > interpArith e (Neg x)                       = negate <$> interpArith e x      -- Negates an arith
-> interpArith e (Length x _)                  = interpArith e x
+> interpArith e (Length x _)                  = Right x --interpArith e x
 > interpArith e (Bin Plus arith1 arith2)      = (+) <$> interpArith e arith1 <*> interpArith e arith2
 > interpArith e (Bin Minus arith1 arith2)     = (-) <$> interpArith e arith1 <*> interpArith e arith2
 > interpArith e (Bin Times arith1 arith2)     = (*) <$> interpArith e arith1 <*> interpArith e arith2
@@ -329,9 +414,6 @@ CHANGE THIS. THIS ISNT HOW I CODE.
 % > showAs :: Type -> Double -> String
 % > showAs typ x = prettyValue (toValue x typ)
 
-%  type       double                      double type 
-% showAs r answer -- prettyValue  (toValue answer r)
-
 
 > prettyPrint :: Arith -> String
 > prettyPrint E                            = "e"
@@ -340,7 +422,7 @@ CHANGE THIS. THIS ISNT HOW I CODE.
 > prettyPrint (Neg x)                      = " - " ++ prettyPrint x
 > prettyPrint (Bin op arith1 arith2)       = prettyPrint arith1  ++ prettyOp op ++  prettyPrint arith2
 > prettyPrint (Trig trigOp x)          = prettyTrigOp trigOp ++ prettyPrint x
-> prettyPrint (Length x unit) = prettyPrint x ++ prettyLength unit
+> prettyPrint (Length x unit) = show x ++ prettyLength unit
 
 > prettyOp :: Op -> String
 > prettyOp Plus = " + "
@@ -381,13 +463,21 @@ CHANGE THIS. THIS ISNT HOW I CODE.
 >     "if that doesn't work, try a TI-84"
 >   ]
 
+% > calc :: String -> String
+% > calc input = case parse arith input of
+% >     Left err -> show err
+% >     Right expr -> case inferType expr of
+% >         Left typeErr ->  showTypeError typeErr
+% >         Right r -> case interpArith M.empty expr of 
+% >                       Left err -> showInterpError err 
+% >                       Right answer -> prettyPrint expr ++ "\n  = " ++ prettyValue  (toValue answer r) 
+
+
 > calc :: String -> String
-> calc input = case parse arith input of
+> calc input = case parse (arith <* eof) input of
 >     Left err -> show err
->     Right expr -> case inferType expr of
->         Left inferErr ->  showTypeError inferErr
+>     Right expr -> case infer M.empty expr of
+>         Left typeErr ->  showTypeError typeErr
 >         Right r -> case interpArith M.empty expr of 
 >                       Left err -> showInterpError err 
 >                       Right answer -> prettyPrint expr ++ "\n  = " ++ prettyValue  (toValue answer r) 
-
--- showAs r answer -- prettyValue  (Value answer r)

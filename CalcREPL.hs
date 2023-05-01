@@ -19,5 +19,5 @@ main = putStrLn description >> runInputT settings loop
                | s `isPrefixOf` ":q" -> return ()
                | s `isPrefixOf` ":help" -> (outputStrLn $ helpMsg) >> loop
         Just input   -> do
-          outputStrLn $ calc2 input
+          outputStrLn $ calc input
           loop
