@@ -1,4 +1,5 @@
-> {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall #-}
+ 
 > {-# LANGUAGE GADTs #-}
 
 > module Calc where
@@ -10,12 +11,10 @@
  --------------------
 
  TO DO 
- implement casting
- all the type checking/inferring - look at mod 10? 
 
- fix the fucking parentheses. that is the one thing i missed. god damn. 
- also the middle line in pretty printing, units are gone, bring them back 
-
+fix the fucking parentheses. that is the one thing i missed. god damn. 
+also the middle line in pretty printing, units are gone, bring them back 
+check lexer. do they all need to be there?
 
 > data Arith where
 >   Lit     :: Value -> Arith                  
@@ -24,6 +23,7 @@
 >   E       :: Arith                                    
 >   Trig    :: TrigOp -> Arith -> Arith
 >   Length  :: Double -> Unit -> Arith 
+>   Convert :: Double -> Unit -> Unit -> Arith 
 >   Bin     :: Op -> Arith -> Arith -> Arith           
 >   deriving (Show)                                 
 
@@ -39,7 +39,7 @@
 >   Sin :: TrigOp
 >   Cos :: TrigOp
 >   Tan :: TrigOp
->   Log :: TrigOp  -- okay so these two aren't trig but I added them later, so they go here anyways
+>   Log :: TrigOp  -- okay so these two aren't trig but I added them after the trig stuff, so they go here anyways
 >   Abs :: TrigOp
 >   deriving (Show, Eq)
 
@@ -81,15 +81,13 @@
 >             ] 
 
 > parseArithAtom :: Parser Arith
-> parseArithAtom = try parseLength
+> parseArithAtom = try parseConvert
+>                  <|>  try parseLength
 >                  <|> (Lit <$> (Value <$> parseDouble <*> pure TypeLit))
 >                  <|> Neg <$> (reservedOp "-" *> parseArithAtom)
 >                  <|> Pi  <$ (reserved "Pi" <|> reserved "pi")
 >                  <|> E   <$ reserved "e"
->               --   <|> try parseCast
 >                  <|> parens parseArith
-
-CASTING DOESNT WORK - GET IT TO? 
 
 > parseLength :: Parser Arith
 > parseLength = Lit <$> (Value <$> parseDouble <*> (TypeLength <$> parseUnit))
@@ -97,8 +95,8 @@ CASTING DOESNT WORK - GET IT TO?
 > parseDouble :: Parser Double 
 > parseDouble = try float <|> fromIntegral <$> integer
 
-% > parseCast :: Parser Arith
-% > parseCast = Length <$> (parens parseArith) <* reservedOp "as" <*> parseUnit
+> parseConvert :: Parser Arith
+> parseConvert = Convert <$> parseDouble <*> parseUnit <* (reserved "to" <|> reserved "in") <*> parseUnit 
 
 > parseUnit :: Parser Unit
 > parseUnit =
@@ -128,7 +126,7 @@ CASTING DOESNT WORK - GET IT TO?
 
 > lexer :: TokenParser u
 > lexer = makeTokenParser emptyDef
->   { reservedNames = ["sin", "cos", "tan", "log", "abs", "sec", "min", "hr", "day", "mon", "yr", "as", "ft", "in"] }
+>   { reservedNames = ["sin", "cos", "tan", "log", "abs", "in", "to"] }
 
 > parens :: Parser a -> Parser a
 > parens     = getParens lexer
@@ -147,6 +145,9 @@ CASTING DOESNT WORK - GET IT TO?
 
 > float :: Parser Double
 > float = getFloat lexer
+
+> identifier :: Parser String
+> identifier = getIdentifier lexer
 
 > arith :: Parser Arith
 > arith = whiteSpace *> parseArith <* eof 
@@ -188,6 +189,7 @@ CASTING DOESNT WORK - GET IT TO?
 >                                       Right TypeLit -> Right TypeLit
 >                                       Right _ -> Left BadTrig
 > infer ctx (Length _ unit)     = Right (TypeLength unit)
+> infer ctx (Convert x u1 u2)   = Right (TypeLength u2) 
 
 
 
@@ -225,6 +227,7 @@ CASTING DOESNT WORK - GET IT TO?
 > interpArith _ (Lit x)                       = Right (toDouble x) 
 > interpArith e (Neg x)                       = negate <$> interpArith e x      -- Negates an arith
 > interpArith e (Length x _)                  = Right x 
+> interpArith e (Convert x unit1 unit2)       = Right (inInches x unit1)
 > interpArith e (Bin Plus arith1 arith2)      = (+) <$> interpArith e arith1 <*> interpArith e arith2
 > interpArith e (Bin Minus arith1 arith2)     = (-) <$> interpArith e arith1 <*> interpArith e arith2
 > interpArith e (Bin Times arith1 arith2)     = (*) <$> interpArith e arith1 <*> interpArith e arith2
@@ -233,11 +236,11 @@ CASTING DOESNT WORK - GET IT TO?
 >                                                   0 -> Left DivideByZero
 >                                                   _ -> (/) <$> interpArith e arith1 <*> Right v
 > interpArith e (Bin Exponent arith1 arith2)  = (**) <$> interpArith e arith1 <*> interpArith e arith2
-> interpArith e (Trig Sin x)              = sin <$> interpArith e x 
-> interpArith e (Trig Cos x)              = cos <$> interpArith e x 
-> interpArith e (Trig Tan x)              = tan <$> interpArith e x 
-> interpArith e (Trig Log x)              = log <$> interpArith e x 
-> interpArith e (Trig Abs x)              = abs <$> interpArith e x
+> interpArith e (Trig Sin x)                  = sin <$> interpArith e x 
+> interpArith e (Trig Cos x)                  = cos <$> interpArith e x 
+> interpArith e (Trig Tan x)                  = tan <$> interpArith e x 
+> interpArith e (Trig Log x)                  = log <$> interpArith e x 
+> interpArith e (Trig Abs x)                  = abs <$> interpArith e x
 
 ------------------------
 ----- Conversions ------       
@@ -279,6 +282,7 @@ CASTING DOESNT WORK - GET IT TO?
 > prettyPrint (Bin op arith1 arith2)       = prettyPrint arith1  ++ prettyOp op ++  prettyPrint arith2
 > prettyPrint (Trig trigOp x)              = prettyTrigOp trigOp ++ prettyPrint x
 > prettyPrint (Length x unit)              = show x ++ prettyLength unit
+> prettyPrint (Convert x unit1 unit2)      = show x ++ prettyLength unit1 ++ " to " ++ prettyLength unit2
 
 > prettyOp :: Op -> String
 > prettyOp Plus         = " + "
